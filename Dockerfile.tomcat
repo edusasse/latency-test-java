@@ -1,0 +1,15 @@
+FROM mcr.microsoft.com/java/tomcat:11-zulu-ubuntu-tomcat-9
+
+ARG APP_FILE=target/ROOT.war
+
+ RUN rm -rf /usr/local/tomcat/webapps/*
+
+ COPY $APP_FILE /usr/local/tomcat/webapps/ROOT.war
+
+ RUN mkdir /usr/local/tomcat/webapps/ROOT && \
+     cd /usr/local/tomcat/webapps/ROOT && \
+     unzip ../ROOT.war && \
+     rm -f ../ROOT.war
+
+# Expose the port Tomcat runs on
+EXPOSE 80 8080
