@@ -2,11 +2,18 @@ FROM jboss/wildfly:latest
 
 ARG APP_FILE=target/ROOT.war
 
-# Remove default Wildfly deployments
+# Remove default WildFly deployments
 RUN rm -rf /opt/jboss/wildfly/standalone/deployments/*
 
 # Copy your application WAR file to the deployments folder
 COPY $APP_FILE /opt/jboss/wildfly/standalone/deployments/ROOT.war
 
-# Expose the ports Wildfly runs on (HTTP and management)
+# Copy the script and make it executable
+COPY configure-wildfly.sh /opt/configure-wildfly.sh
+RUN chmod +x /opt/configure-wildfly.sh
+
+# Run the script during container startup
+CMD ["/opt/configure-wildfly.sh"]
+
+# Expose the ports WildFly runs on (HTTP and management)
 EXPOSE 8080 9990
