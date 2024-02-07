@@ -14,6 +14,16 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 
 /**
  * LatencyTestServlet
@@ -54,34 +64,56 @@ public class LatencyTestServlet extends HttpServlet {
 
     private void testLatency(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         final String urlParam = req.getParameter("url");
+        final int numCalls = Integer.parseInt(req.getParameter("numCalls"));
+        final int delayInMillis = Integer.parseInt(req.getParameter("delayInMillis")); // Delay between each call
+
         if ((urlParam == null) || (urlParam != null && urlParam.trim().length() == 0)) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "URL parameter is missing.");
             return;
         }
 
         try {
-            // Perform a GET call to the provided URL
-            long startTime = System.currentTimeMillis();
-            URL url = new URL(urlParam);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
+            JSONArray latenciesArray = new JSONArray();
+            long totalLatency = 0;
 
-            int responseCode = connection.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                long endTime = System.currentTimeMillis();
-                long latency = endTime - startTime;
+            for (int i = 0; i < numCalls; i++) {
+                long startTime = System.currentTimeMillis();
+                URL url = new URL(urlParam);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
 
-                telemetryClient.trackEvent("LatencyTestServlet.latency result [" + latency + "]");
+                int responseCode = connection.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    long endTime = System.currentTimeMillis();
+                    long latency = endTime - startTime;
+                    totalLatency += latency;
+                    latenciesArray.put(latency);
+                } else {
+                    resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to fetch URL.");
+                    return;
+                }
 
-                resp.setContentType("text/plain");
-                resp.getWriter().write(String.valueOf(latency));
-            } else {
-                resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to fetch URL.");
+                Thread.sleep(delayInMillis); // Adding delay between calls
             }
+
+            long averageLatency = totalLatency / numCalls;
+
+            JSONObject jsonResponse = new JSONObject();
+            jsonResponse.put("latencies", latenciesArray);
+            jsonResponse.put("average_latency", averageLatency);
+
+            resp.setContentType("application/json");
+            PrintWriter out = resp.getWriter();
+            out.print(jsonResponse.toString());
+            out.flush();
+        } catch (NumberFormatException e) {
+            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid delay value.");
         } catch (MalformedURLException e) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid URL.");
         } catch (IOException e) {
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error while fetching URL.");
+        } catch (InterruptedException e) {
+            resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Thread interrupted.");
         }
     }
 

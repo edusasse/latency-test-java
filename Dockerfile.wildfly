@@ -9,11 +9,15 @@ RUN rm -rf /opt/jboss/wildfly/standalone/deployments/*
 COPY $APP_FILE /opt/jboss/wildfly/standalone/deployments/ROOT.war
 
 # Copy the script and make it executable
-COPY configure-wildfly.sh /opt/configure-wildfly.sh
-RUN chmod +x /opt/configure-wildfly.sh
-
-# Run the script during container startup
-CMD ["/opt/configure-wildfly.sh"]
+RUN sed -i 's/<max-threads count="[0-9]*"/<max-threads count="100"/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
+RUN sed -i 's/<keepalive-time time="[0-9]*"/<keepalive-time time="6000"/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
+RUN sed -i '/<subsystem xmlns="urn:jboss:domain:messaging:.*">/,/<\/subsystem>/ s/<\/subsystem>/<!--&-->/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
+RUN sed -i '/<connector name="https"/,/<\/connector>/ s/<\/connector>/<!--&-->/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
+RUN sed -i 's/<level name="INFO"/<level name="WARN"/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
+RUN sed -i '/<location name="management-console">/,/<\/location>/ s/<\/location>/<!--&-->/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
+RUN sed -i 's/<timer-service .*enabled="true"/<timer-service enabled="false"/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
+RUN sed -i '/<subsystem xmlns="urn:jboss:domain:modcluster:.*">/,/<\/subsystem>/ s/<\/subsystem>/<!--&-->/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
+RUN sed -i '/<security-realm name=".*">/,/<\/security-realm>/ s/<\/security-realm>/<!--&-->/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
 
 # Expose the ports WildFly runs on (HTTP and management)
 EXPOSE 8080 9990
