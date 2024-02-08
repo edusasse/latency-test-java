@@ -8,7 +8,7 @@ RUN rm -rf /opt/jboss/wildfly/standalone/deployments/*
 # Copy your application WAR file to the deployments folder
 COPY $APP_FILE /opt/jboss/wildfly/standalone/deployments/ROOT.war
 
-# Copy the script and make it executable
+# Optimizations (test only)
 RUN sed -i 's/<max-threads count="[0-9]*"/<max-threads count="100"/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
 RUN sed -i 's/<keepalive-time time="[0-9]*"/<keepalive-time time="6000"/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
 RUN sed -i '/<subsystem xmlns="urn:jboss:domain:messaging:.*">/,/<\/subsystem>/ s/<\/subsystem>/<!--&-->/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
