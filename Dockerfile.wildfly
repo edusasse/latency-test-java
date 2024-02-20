@@ -1,23 +1,44 @@
-FROM jboss/wildfly:latest
+FROM jboss/base-jdk:11
+
+LABEL name="wildfly-24.0.1.Final-java8"
+LABEL version="0.0.1"
+
+# Set the WILDFLY_VERSION env variable
+ENV WILDFLY_VERSION 24.0.1.Final
+ENV WILDFLY_SHA1 751e3ff9128a6fbe72016552a9b864f729a710cc
+ENV JBOSS_HOME /opt/jboss/wildfly
+
+USER root
+
+# ============================================================
+#
+#                  Wildfly
+#
+# ============================================================
+# Add the WildFly distribution to /opt, and make wildfly the owner of the extracted tar content
+# Make sure the distribution is available from a well-known place
+RUN cd $HOME \
+    && curl -O --insecure https://download.jboss.org/wildfly/$WILDFLY_VERSION/wildfly-$WILDFLY_VERSION.tar.gz \
+    && sha1sum wildfly-$WILDFLY_VERSION.tar.gz | grep $WILDFLY_SHA1 \
+    && tar xf wildfly-$WILDFLY_VERSION.tar.gz \
+    && mv $HOME/wildfly-$WILDFLY_VERSION $JBOSS_HOME \
+    && rm wildfly-$WILDFLY_VERSION.tar.gz \
+    && chown -R jboss:0 ${JBOSS_HOME} \
+    && chmod -R g+rw ${JBOSS_HOME}
+
+USER jboss
 
 ARG APP_FILE=target/ROOT.war
 
 # Remove default WildFly deployments
 RUN rm -rf /opt/jboss/wildfly/standalone/deployments/*
 
+RUN /opt/jboss/wildfly/bin/add-user.sh admin admin --silent
+
 # Copy your application WAR file to the deployments folder
 COPY $APP_FILE /opt/jboss/wildfly/standalone/deployments/ROOT.war
 
-# Optimizations (test only)
-RUN sed -i 's/<max-threads count="[0-9]*"/<max-threads count="100"/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
-RUN sed -i 's/<keepalive-time time="[0-9]*"/<keepalive-time time="6000"/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
-RUN sed -i '/<subsystem xmlns="urn:jboss:domain:messaging:.*">/,/<\/subsystem>/ s/<\/subsystem>/<!--&-->/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
-RUN sed -i '/<connector name="https"/,/<\/connector>/ s/<\/connector>/<!--&-->/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
-RUN sed -i 's/<level name="INFO"/<level name="WARN"/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
-RUN sed -i '/<location name="management-console">/,/<\/location>/ s/<\/location>/<!--&-->/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
-RUN sed -i 's/<timer-service .*enabled="true"/<timer-service enabled="false"/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
-RUN sed -i '/<subsystem xmlns="urn:jboss:domain:modcluster:.*">/,/<\/subsystem>/ s/<\/subsystem>/<!--&-->/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
-RUN sed -i '/<security-realm name=".*">/,/<\/security-realm>/ s/<\/security-realm>/<!--&-->/g' /opt/jboss/wildfly/standalone/configuration/standalone.xml
-
 # Expose the ports WildFly runs on (HTTP and management)
 EXPOSE 8080 9990
+
+CMD ["/opt/jboss/wildfly/bin/standalone.sh", "-b", "0.0.0.0", "-bmanagement", "0.0.0.0"]

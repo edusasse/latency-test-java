@@ -41,7 +41,7 @@ public class LatencyTestServletApacheHttp extends HttpServlet {
     static {
         // Configure connection pool settings
         connManager.setMaxTotal(200); // Maximum total connections
-        connManager.setDefaultMaxPerRoute(20); // Maximum connections per route
+        connManager.setDefaultMaxPerRoute(10); // Maximum connections per route
         connManager.setValidateAfterInactivity(TimeValue.ofMilliseconds(1000)); // Validate connections after 1 second of inactivity
         httpClient = HttpClients.custom().setConnectionManager(connManager).build();
     }
