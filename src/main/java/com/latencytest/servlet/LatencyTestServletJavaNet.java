@@ -1,76 +1,72 @@
 package com.latencytest.servlet;
 
 import com.microsoft.applicationinsights.TelemetryClient;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
-import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import java.net.http.HttpClient;
 
 
 /**
  * LatencyTestServlet
  */
-@WebServlet(name = "LatencyTestServlet", urlPatterns = { "/latencytest" }, loadOnStartup = 1)
-public class LatencyTestServlet extends HttpServlet {
+@WebServlet(name = "LatencyTestServletJavaNet", urlPatterns = { "/latencytest_v1" }, loadOnStartup = 1)
+public class LatencyTestServletJavaNet extends HttpServlet {
 
     /**
      * serialVersionUID
      */
     private static final long serialVersionUID = 1L;
 
-    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(LatencyTestServlet.class);
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(LatencyTestServletJavaNet.class);
 
     static final TelemetryClient telemetryClient = new TelemetryClient();
 
+    private static final int POOL_SIZE = 1;
+    private ConnectionPool connectionPool;
+
     @Override
     public void init() {
-        LOGGER.info("LatencyTestServlet initialized on app startup.");
+        LOGGER.info("LatencyTestServlet initialized on app startup."); // Initialize connection pool
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        telemetryClient.trackEvent("LatencyTestServlet.doGet start");
+        telemetryClient.trackEvent("LatencyTestServletJavaNet.doGet start");
 
         latencyTest(req, resp);
 
-        telemetryClient.trackEvent("LatencyTestServlet.doGet end");
+        telemetryClient.trackEvent("LatencyTestServletJavaNet.doGet end");
     }
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        telemetryClient.trackEvent("LatencyTestServlet.doPost start");
+        telemetryClient.trackEvent("LatencyTestServletJavaNet.doPost start");
 
         testLatency(req, resp);
 
-        telemetryClient.trackEvent("LatencyTestServlet.doPost end");
+        telemetryClient.trackEvent("LatencyTestServletJavaNet.doPost end");
     }
 
     private void testLatency(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         final String urlParam = req.getParameter("url");
         final int numCalls = Integer.parseInt(req.getParameter("numCalls"));
-        final int delayInMillis = Integer.parseInt(req.getParameter("delayInMillis")); // Delay between each call
+        final int delayInMillis = Integer.parseInt(req.getParameter("delayInMillis"));
 
         if ((urlParam == null) || (urlParam != null && urlParam.trim().length() == 0)) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "URL parameter is missing.");
             return;
         }
+
+        connectionPool = new ConnectionPool(urlParam, POOL_SIZE);
 
         try {
             JSONArray latenciesArray = new JSONArray();
