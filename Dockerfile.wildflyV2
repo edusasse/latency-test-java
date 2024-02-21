@@ -1,4 +1,4 @@
-FROM quay.io/wildfly/wildfly:25.0.1.Final
+FROM quay.io/wildfly/wildfly:30.0.1.Final-jdk11
 
 USER jboss
 
