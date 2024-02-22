@@ -1,14 +1,13 @@
 package com.latencytest.servlet;
 
 import com.microsoft.applicationinsights.TelemetryClient;
-import org.apache.hc.client5.http.classic.methods.HttpGet;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
-import org.apache.hc.core5.http.ClassicHttpResponse;
-import org.apache.hc.core5.http.HttpStatus;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.apache.hc.core5.util.TimeValue;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -24,7 +23,7 @@ import java.net.MalformedURLException;
 /**
  * LatencyTestServlet
  */
-@WebServlet(name = "LatencyTestServletApacheHttp", urlPatterns = { "/latencytest_v2" }, loadOnStartup = 1)
+@WebServlet(name = "LatencyTestServletApacheHttp", urlPatterns = {"/latencytest_v2"}, loadOnStartup = 1)
 public class LatencyTestServletApacheHttp extends HttpServlet {
 
     /**
@@ -34,16 +33,11 @@ public class LatencyTestServletApacheHttp extends HttpServlet {
 
     private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(LatencyTestServletApacheHttp.class);
 
-    private static final PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
-
-    private static CloseableHttpClient httpClient = null;
+    private static final CloseableHttpClient httpClient;
 
     static {
-        // Configure connection pool settings
-        connManager.setMaxTotal(200); // Maximum total connections
-        connManager.setDefaultMaxPerRoute(10); // Maximum connections per route
-        connManager.setValidateAfterInactivity(TimeValue.ofMilliseconds(1000)); // Validate connections after 1 second of inactivity
-        httpClient = HttpClients.custom().setConnectionManager(connManager).build();
+        // Configure HttpClient
+        httpClient = HttpClients.createDefault();
     }
 
     static final TelemetryClient telemetryClient = new TelemetryClient();
@@ -61,6 +55,7 @@ public class LatencyTestServletApacheHttp extends HttpServlet {
 
         telemetryClient.trackEvent("LatencyTestServletApacheHttp.doGet end");
     }
+
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         telemetryClient.trackEvent("LatencyTestServletApacheHttp.doPost start");
@@ -90,18 +85,20 @@ public class LatencyTestServletApacheHttp extends HttpServlet {
                 HttpGet httpGet = new HttpGet(urlParam);
                 httpGet.addHeader("Connection", "Keep-Alive"); // Set Keep-Alive header
 
-                try (ClassicHttpResponse response = httpClient.execute(httpGet)) {
-                    if (response.getCode() == HttpStatus.SC_OK) {
-                        long endTime = System.currentTimeMillis();
-                        long latency = endTime - startTime;
-                        totalLatency += latency;
-                        latenciesArray.put(latency);
-                    } else {
-                        // Handle error
-                        EntityUtils.consumeQuietly(response.getEntity()); // Ensure entity is consumed
-                        resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to fetch URL.");
-                        return;
-                    }
+                HttpResponse response = httpClient.execute(httpGet);
+                HttpEntity entity = response.getEntity();
+
+                if (response.getStatusLine().getStatusCode() == HttpServletResponse.SC_OK && entity != null) {
+                    long endTime = System.currentTimeMillis();
+                    long latency = endTime - startTime;
+                    totalLatency += latency;
+                    latenciesArray.put(latency);
+                    EntityUtils.consume(entity); // Ensure entity is consumed
+                } else {
+                    // Handle error
+                    EntityUtils.consume(entity); // Ensure entity is consumed
+                    resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Failed to fetch URL.");
+                    return;
                 }
 
                 Thread.sleep(delayInMillis);

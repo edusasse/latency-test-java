@@ -1,47 +1,32 @@
 package com.latencytest.servlet;
 
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.glassfish.jersey.apache.connector.ApacheClientProperties;
+import org.glassfish.jersey.apache.connector.ApacheConnectorProvider;
+import org.glassfish.jersey.client.ClientConfig;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
-
-import org.apache.commons.pool2.BasePooledObjectFactory;
-import org.apache.commons.pool2.PooledObject;
-import org.apache.commons.pool2.impl.GenericObjectPool;
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
+import javax.ws.rs.client.WebTarget;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-/**
- * LatencyTestServlet
- */
 @WebServlet(name = "LatencyTestServletWildflyHttpClientWithPool", urlPatterns = {"/latencytest_v4"}, loadOnStartup = 1)
-public class LatencyTestServletWildflyHttpClientWithPool extends HttpServlet {
+public class LatencyTestServletWildflyHttpClientWithApacheHttp extends HttpServlet {
 
-    /**
-     * serialVersionUID
-     */
     private static final long serialVersionUID = 1L;
 
-    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(LatencyTestServletApacheHttp.class);
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(LatencyTestServletWildflyHttpClientWithApacheHttp.class);
 
-    private Client client  = null;
-    private GenericObjectPool<Client> pool = null;
     @Override
     public void init() {
-        LOGGER.info("LatencyTestServletWildflyHttpClientWithPool initialized on app startup.");
-
-        // Configure connection pool
-        GenericObjectPoolConfig<Client> config = new GenericObjectPoolConfig<>();
-        config.setMaxTotal(10); // Max connections in pool
-        config.setBlockWhenExhausted(true); // Wait for connection if pool is full
-
-        pool = new GenericObjectPool<>(new ClientFactory(), config);
+        LOGGER.info("LatencyTestServletWildflyHttpClientWithApacheHttp4 initialized on app startup.");
     }
 
     @Override
@@ -64,6 +49,11 @@ public class LatencyTestServletWildflyHttpClientWithPool extends HttpServlet {
             return;
         }
 
+        final ClientConfig clientConfig = new ClientConfig();
+        clientConfig.property(ApacheClientProperties.CONNECTION_MANAGER, new PoolingHttpClientConnectionManager());
+        clientConfig.connectorProvider(new ApacheConnectorProvider());
+        final Client client = ClientBuilder.newBuilder().withConfig(clientConfig).build();
+
         try {
             JSONArray latenciesArray = new JSONArray();
             long totalLatency = 0;
@@ -71,8 +61,8 @@ public class LatencyTestServletWildflyHttpClientWithPool extends HttpServlet {
             for (int i = 0; i < numCalls; i++) {
                 long startTime = System.currentTimeMillis();
 
-                Client client = pool.borrowObject();
-                final int responseCode = client.target(urlParam).request().get().getStatus();
+                WebTarget target = client.target(urlParam);
+                int responseCode = target.request().get().getStatus();
 
                 if (responseCode == HttpServletResponse.SC_OK) {
                     long endTime = System.currentTimeMillis();
@@ -101,18 +91,13 @@ public class LatencyTestServletWildflyHttpClientWithPool extends HttpServlet {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid delay value.");
         } catch (Exception e) {
             resp.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error while fetching URL.");
+        } finally {
+            client.close();
         }
     }
 
     private void latencyTest(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         // Respond with a simple OK
         resp.getWriter().write("OK");
-    }
-
-    @Override
-    public void destroy() {
-        super.destroy();
-        // Shutdown pool
-        pool.close();
     }
 }

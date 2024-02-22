@@ -97,4 +97,10 @@ public class LatencyTestServletWildflyHttpClient extends HttpServlet {
         // Respond with a simple OK
         resp.getWriter().write("OK");
     }
+
+    @Override
+    public void destroy() {
+        super.destroy();
+        client.close();
+    }
 }

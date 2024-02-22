@@ -1,11 +1,11 @@
-FROM jboss/base-jdk:11
+FROM jboss/base-jdk:8
 
-LABEL name="wildfly-24.0.1.Final-java8"
+LABEL name="wildfly-20.0.1.final-java8"
 LABEL version="0.0.1"
 
 # Set the WILDFLY_VERSION env variable
-ENV WILDFLY_VERSION 24.0.1.Final
-ENV WILDFLY_SHA1 751e3ff9128a6fbe72016552a9b864f729a710cc
+ENV WILDFLY_VERSION 20.0.1.Final
+ENV WILDFLY_SHA1 95366b4a0c8f2e6e74e3e4000a98371046c83eeb
 ENV JBOSS_HOME /opt/jboss/wildfly
 
 USER root

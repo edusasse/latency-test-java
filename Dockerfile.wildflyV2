@@ -1,5 +1,41 @@
 FROM quay.io/wildfly/wildfly:25.0.1.Final
 
+LABEL name="jfoss-12.12.0/wildfly-25.0.1.Final" \
+      version="0.0.1"
+
+# Expose the ports WildFly runs on (HTTP and management)
+EXPOSE 8080 8000 9990 2222
+
+USER root
+
+# Set environment variables
+ENV LANG=de_DE.UTF-8 \
+    LANGUAGE=de_DE.UTF-8 \
+    TZ=Europe/Berlin \
+    ENV_JAVA_OPTS="" \
+    ENV_JAVA_FILE_ENCODING="-Dsun.jnu.encoding=UTF-8 -Dfile.encoding=UTF-8"
+
+# Copy necessary files
+COPY --chown=jboss:jboss image-resources/tmp/install/ /tmp/install
+COPY image-resources/tmp/install/entrypoint.sh /srv/app-data/
+COPY image-resources/tmp/install/supervisord.conf /etc/supervisord.conf
+COPY image-resources/tmp/install/sshd_config /etc/ssh/
+
+# Adjust permissions
+RUN chmod -R ugo=wrx /tmp/install
+
+# Combine installation steps
+RUN yum -y update && \
+    yum -y install glibc-common which iputils wget bind-utils telnet dialog python3 python3-pip openssh openssh-server openssh-clients openldap-clients tcpdump && \
+    pip3 install --no-cache-dir supervisor && \
+    echo "root:Docker!" | chpasswd && \
+    cd /etc/ssh/ && \
+    ssh-keygen -A && \
+    chown -R -v jboss:jboss /srv/app-data/ && \
+    chmod -R -v 755 /srv/app-data/ && \
+    chmod +x /srv/app-data/*.sh && \
+    yum clean all
+
 USER jboss
 
 ARG APP_FILE=target/ROOT.war
@@ -12,7 +48,4 @@ RUN /opt/jboss/wildfly/bin/add-user.sh admin admin --silent
 # Copy your application WAR file to the deployments folder
 COPY $APP_FILE /opt/jboss/wildfly/standalone/deployments/ROOT.war
 
-# Expose the ports WildFly runs on (HTTP and management)
-EXPOSE 8080 9990
-
-CMD ["/opt/jboss/wildfly/bin/standalone.sh", "-b", "0.0.0.0", "-bmanagement", "0.0.0.0"]
+ENTRYPOINT ["/srv/app-data/entrypoint.sh"]
