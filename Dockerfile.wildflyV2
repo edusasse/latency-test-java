@@ -31,8 +31,8 @@ RUN yum -y update && \
     echo "root:Docker!" | chpasswd && \
     cd /etc/ssh/ && \
     ssh-keygen -A && \
-    chown -R -v jboss:jboss /srv/app-data/ && \
-    chmod -R -v 755 /srv/app-data/ && \
+    chown -R -v jboss:jboss /srv/ && \
+    chmod -R -v 755 /srv/ && \
     chmod +x /srv/app-data/*.sh && \
     yum clean all
 
