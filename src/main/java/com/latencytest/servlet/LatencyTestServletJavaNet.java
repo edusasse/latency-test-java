@@ -77,6 +77,21 @@ public class LatencyTestServletJavaNet extends HttpServlet {
                 URL url = new URL(urlParam);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
+				
+				 // Add extra headers
+				connection.setRequestProperty("Max-Forwards", "10");
+				connection.setRequestProperty("Request-Id", "|5e9da3a70f8974b89b8f13979db4563a.ef7194154f279400.");
+				connection.setRequestProperty("Request-Context", "appId=cid-v1:5fed860a-92e1-4340-9cdd-f3af6f8d6fad");
+				connection.setRequestProperty("X-ARR-LOG-ID", "1abbea78-8053-4464-ba2e-2a3cd0a8c42d");
+				connection.setRequestProperty("CLIENT-IP", "51.136.123.140:2432");
+				connection.setRequestProperty("X-Client-IP", "51.136.123.140");
+				connection.setRequestProperty("DISGUISED-HOST", "gato-i-weu-001-dt-main-app-java.azurewebsites.net");
+				connection.setRequestProperty("X-SITE-DEPLOYMENT-ID", "gato-i-weu-001-dt-main-app-java");
+				connection.setRequestProperty("WAS-DEFAULT-HOSTNAME", "gato-i-weu-001-dt-main-app-java.azurewebsites.net");
+				connection.setRequestProperty("X-Forwarded-For", "51.136.123.140:2432");
+				connection.setRequestProperty("X-Original-URL", "/latencytest_v1");
+				connection.setRequestProperty("X-WAWS-Unencoded-URL", "/latencytest_v1");
+				connection.setRequestProperty("X-Client-Port", "2432");
 
                 int responseCode = connection.getResponseCode();
                 if (responseCode == HttpURLConnection.HTTP_OK) {

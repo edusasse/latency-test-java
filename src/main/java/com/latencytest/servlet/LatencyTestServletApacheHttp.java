@@ -84,6 +84,20 @@ public class LatencyTestServletApacheHttp extends HttpServlet {
 
                 HttpGet httpGet = new HttpGet(urlParam);
                 httpGet.addHeader("Connection", "Keep-Alive"); // Set Keep-Alive header
+				// Add extra headers
+				httpGet.addHeader("Max-Forwards", "10");
+				httpGet.addHeader("Request-Id", "|5e9da3a70f8974b89b8f13979db4563a.ef7194154f279400.");
+				httpGet.addHeader("Request-Context", "appId=cid-v1:5fed860a-92e1-4340-9cdd-f3af6f8d6fad");
+				httpGet.addHeader("X-ARR-LOG-ID", "1abbea78-9053-4464-ba2e-2a3cd0a8c42d");
+				httpGet.addHeader("CLIENT-IP", "51.136.123.140:2432");
+				httpGet.addHeader("X-Client-IP", "51.136.123.140");
+				httpGet.addHeader("DISGUISED-HOST", "gato-i-weu-001-dt-main-app-java.azurewebsites.net");
+				httpGet.addHeader("X-SITE-DEPLOYMENT-ID", "gato-i-weu-001-dt-main-app-java");
+				httpGet.addHeader("WAS-DEFAULT-HOSTNAME", "gato-i-weu-001-dt-main-app-java.azurewebsites.net");
+				httpGet.addHeader("X-Forwarded-For", "51.136.123.140:2432");
+				httpGet.addHeader("X-Original-URL", "/latencytest_v2");
+				httpGet.addHeader("X-WAWS-Unencoded-URL", "/latencytest_v2");
+				httpGet.addHeader("X-Client-Port", "2432");
 
                 HttpResponse response = httpClient.execute(httpGet);
                 HttpEntity entity = response.getEntity();

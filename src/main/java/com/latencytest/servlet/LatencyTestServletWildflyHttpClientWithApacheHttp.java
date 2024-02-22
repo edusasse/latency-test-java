@@ -61,10 +61,23 @@ public class LatencyTestServletWildflyHttpClientWithApacheHttp extends HttpServl
             for (int i = 0; i < numCalls; i++) {
                 long startTime = System.currentTimeMillis();
 
-                WebTarget target = client.target(urlParam);
-                int responseCode = target.request().get().getStatus();
+                // Building the request with custom headers
+                final Invocation.Builder builder = client.target(urlParam).request();
+				builder.header("Max-Forwards", "10");
+				builder.header("Request-Id", "|5e9da3a70f8974b89b8f13979db4563a.ef7194154f279400.");
+				builder.header("Request-Context", "appId=cid-v1:5fed860a-92e1-4340-9cdd-f3af6f8d6fad");
+				builder.header("X-ARR-LOG-ID", "1abbea78-8053-4464-ba2e-2a3cd0a8c42d");
+				builder.header("CLIENT-IP", "51.136.123.140:2432");
+				builder.header("X-Client-IP", "51.136.123.140");
+				builder.header("DISGUISED-HOST", "gato-i-weu-001-dt-main-app-java.azurewebsites.net");
+				builder.header("X-SITE-DEPLOYMENT-ID", "gato-i-weu-001-dt-main-app-java");
+				builder.header("WAS-DEFAULT-HOSTNAME", "gato-i-weu-001-dt-main-app-java.azurewebsites.net");
+				builder.header("X-Forwarded-For", "51.136.123.140:2432");
+				builder.header("X-Original-URL", "/latencytest_v1");
+				builder.header("X-WAWS-Unencoded-URL", "/latencytest_v1");
+				builder.header("X-Client-Port", "2432");
 
-                if (responseCode == HttpServletResponse.SC_OK) {
+                final Response response = builder.get();
                     long endTime = System.currentTimeMillis();
                     long latency = endTime - startTime;
                     totalLatency += latency;
